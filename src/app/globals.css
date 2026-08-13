@@ -1,26 +1,74 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Trailhead palette — field-guide greens, trail-blaze orange */
+  --pine-ink: #1c2a21; /* primary text */
+  --pine-deep: #122018;
+  --pine: #24382b; /* dark surfaces */
+  --moss: #5a7351; /* secondary text, muted accents */
+  --sage: #eff1e8; /* page background */
+  --parchment: #fbfbf7; /* cards */
+  --blaze: #e4570f; /* trail-blaze accent — CTAs only */
+  --blaze-deep: #c2470a;
+  --line: rgba(28, 42, 33, 0.12); /* hairline borders */
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-pine-ink: var(--pine-ink);
+  --color-pine: var(--pine);
+  --color-pine-deep: var(--pine-deep);
+  --color-moss: var(--moss);
+  --color-sage: var(--sage);
+  --color-parchment: var(--parchment);
+  --color-blaze: var(--blaze);
+  --color-blaze-deep: var(--blaze-deep);
+  --color-line: var(--line);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-display: var(--font-barlow-condensed);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--sage);
+  color: var(--pine-ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--blaze);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--blaze);
+  outline-offset: 2px;
+}
+
+/* Display type: national-park-signage voice */
+.display {
+  font-family: var(--font-barlow-condensed), sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 0.95;
+}
+
+/* Eyebrow labels: trail-marker voice */
+.eyebrow {
+  font-family: var(--font-geist-mono), monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  font-size: 0.6875rem;
+  color: var(--moss);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -1,0 +1,14 @@
+{
+  "name": "classify-conversations",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "index.ts",
+  "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.110",
+    "@sanity/client": "^7.26.2",
+    "@sanity/context": "^1.0.0",
+    "@sanity/functions": "^1.6.2",
+    "ai": "^6.0.250"
+  }
+}

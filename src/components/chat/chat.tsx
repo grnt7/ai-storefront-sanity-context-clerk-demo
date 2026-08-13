@@ -1,0 +1,224 @@
+"use client";
+
+import { useChat } from "@ai-sdk/react";
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithToolCalls,
+  type UIMessage,
+} from "ai";
+import { Compass, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import { getDocumentContext, getPageContent } from "@/lib/capture-context";
+import {
+  CLIENT_TOOL_NAMES,
+  productFiltersSchema,
+  type ProductFiltersInput,
+} from "@/lib/client-tools";
+
+import { ChatInput } from "./chat-input";
+import { Loader } from "./loader";
+import { Message } from "./message/message";
+
+const SUGGESTIONS = [
+  "Comfy hiking boots under $200, size 10?",
+  "What should I pack for a rainy weekend hike?",
+  "What did I order last time?",
+];
+
+/**
+ * True while the last assistant message has no streamed text yet —
+ * used to show the loader.
+ */
+function isWaitingForText(messages: UIMessage[]): boolean {
+  const last = messages[messages.length - 1];
+  if (!last || last.role !== "assistant") return true;
+
+  const parts = last.parts ?? [];
+  if (parts.length === 0) return true;
+
+  const lastPart = parts[parts.length - 1];
+  return !(lastPart.type === "text" && lastPart.text.trim().length > 0);
+}
+
+interface ChatProps {
+  onClose: () => void;
+  initialPrompt?: string;
+  onInitialPromptSent?: () => void;
+}
+
+export function Chat({ onClose, initialPrompt, onInitialPromptSent }: ChatProps) {
+  const router = useRouter();
+  const [input, setInput] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const applyProductFilters = useCallback(
+    (filters: ProductFiltersInput): string => {
+      const params = new URLSearchParams();
+      if (filters.category) params.set("category", filters.category);
+      if (filters.size) params.set("size", filters.size);
+      if (typeof filters.minPrice === "number")
+        params.set("minPrice", String(filters.minPrice));
+      if (typeof filters.maxPrice === "number")
+        params.set("maxPrice", String(filters.maxPrice));
+      if (filters.sort) params.set("sort", filters.sort);
+      if (filters.q) params.set("q", filters.q);
+
+      const newUrl = `/products${params.size ? `?${params}` : ""}`;
+      router.push(newUrl, { scroll: false });
+      return newUrl;
+    },
+    [router],
+  );
+
+  const { messages, sendMessage, status, addToolOutput, error, regenerate } =
+    useChat({
+      transport: new DefaultChatTransport({
+        body: () => ({ documentContext: getDocumentContext() }),
+      }),
+      sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
+      onToolCall: async ({ toolCall }) => {
+        if (toolCall.dynamic) return;
+
+        const respond = (output: unknown): void => {
+          addToolOutput({
+            tool: toolCall.toolName,
+            toolCallId: toolCall.toolCallId,
+            output,
+          });
+        };
+
+        switch (toolCall.toolName) {
+          case CLIENT_TOOL_NAMES.PAGE_CONTEXT: {
+            respond(getPageContent());
+            return;
+          }
+
+          case CLIENT_TOOL_NAMES.SET_FILTERS: {
+            const parsed = productFiltersSchema.safeParse(toolCall.input);
+            if (!parsed.success) {
+              respond(`Invalid input: ${parsed.error.message}`);
+              return;
+            }
+            const url = applyProductFilters(parsed.data);
+            respond(`Filters applied. Navigated to ${url}`);
+          }
+        }
+      },
+    });
+
+  // Auto-send the prompt passed from an "Ask the Trail Guide" button
+  const sentInitialPrompt = useRef(false);
+  useEffect(() => {
+    if (!initialPrompt || sentInitialPrompt.current) return;
+    sentInitialPrompt.current = true;
+    sendMessage({ text: initialPrompt });
+    onInitialPromptSent?.();
+  }, [initialPrompt, sendMessage, onInitialPromptSent]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+    sendMessage({ text: input });
+    setInput("");
+  };
+
+  const isLoading = status === "submitted" || status === "streaming";
+  const showLoader = isLoading && isWaitingForText(messages);
+
+  return (
+    <div className="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-line bg-parchment shadow-2xl">
+      {/* Header */}
+      <div className="flex items-center justify-between bg-pine-deep px-4 py-3">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10">
+            <Compass className="h-4 w-4 text-blaze" />
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-white">Trail Guide</h3>
+            <p className="text-xs text-white/50">
+              Live from Sanity · knows your orders
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-full p-1.5 text-white/60 transition-colors hover:bg-white/10 hover:text-white"
+          aria-label="Close chat"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {messages.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
+            <p className="text-sm text-pine-ink/50">
+              Ask about any gear in the store — or your own orders.
+            </p>
+            <div className="flex flex-col gap-2">
+              {SUGGESTIONS.map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  onClick={() => sendMessage({ text: suggestion })}
+                  className="rounded-full border border-line bg-sage/60 px-4 py-2 text-xs text-pine-ink/80 transition-colors hover:border-pine/30 hover:text-pine-ink"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {messages.map((message) => (
+              <Message key={message.id} message={message} />
+            ))}
+
+            {showLoader && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] rounded-lg bg-sage px-4 py-2 text-sm text-pine-ink">
+                  <Loader />
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <div className="flex justify-start">
+                <div className="flex flex-col gap-2 rounded-lg bg-blaze/10 px-4 py-3 text-sm text-blaze-deep">
+                  <span>{error.message || "Something went wrong."}</span>
+                  <button
+                    type="button"
+                    onClick={() => regenerate()}
+                    className="w-fit rounded bg-blaze px-3 py-1 text-xs font-medium text-white hover:bg-blaze-deep"
+                  >
+                    Try again
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+      </div>
+
+      {/* Input */}
+      <div className="border-t border-line p-3">
+        <ChatInput
+          input={input}
+          setInput={setInput}
+          onSubmit={handleSubmit}
+          disabled={isLoading}
+        />
+      </div>
+    </div>
+  );
+}

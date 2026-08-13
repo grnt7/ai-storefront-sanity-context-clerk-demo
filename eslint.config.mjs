@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Installed agent skills (reference code, not app code):
+    ".agents/**",
+    ".claude/**",
+    "agent/**",
+    // sanity deploy build output:
+    "dist/**",
   ]),
 ]);
 
