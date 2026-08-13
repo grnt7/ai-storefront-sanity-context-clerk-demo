@@ -44,6 +44,8 @@ time?"_ too.
 > Vercel AI SDK v6 + `@ai-sdk/mcp` · Claude Sonnet 5 · Tailwind CSS v4 ·
 > TypeScript strict
 
+![Trailhead home — hero with the Trail Guide launcher](docs/assets/home.png)
+
 ---
 
 ## 👇🏼 DO THIS Before You Get Started
@@ -129,6 +131,12 @@ reads from the same live dataset as the website.
 - 🎨 **Trail-signage design system** — Barlow Condensed display type, topo-line
   motif, trail-blaze orange accents, Tailwind v4 tokens
 
+![Filtered catalog — Hiking Boots, size 10, under $200. Note the engineered demo traps: Granite Peak Pro is out of stock and Creekside is on sale](docs/assets/catalog-filtered.png)
+
+| Product page | Cart drawer |
+| --- | --- |
+| ![Ridgeline Mid product page](docs/assets/product.png) | ![Your Pack cart drawer](docs/assets/cart.png) |
+
 ### The Trail Guide (AI agent)
 
 - 🧠 **Schema-aware from message one** — the Sanity Context `/initial-context`
@@ -145,6 +153,18 @@ reads from the same live dataset as the website.
   the signed-in user's ID; the agent physically cannot see anyone else's orders
 - ✍️ **Editable behavior** — system prompt and context instructions are Sanity
   documents
+
+| Trail Guide (Clerk-gated) | Clerk sign-in modal |
+| --- | --- |
+| ![Trail Guide widget — sign in to chat](docs/assets/trail-guide-widget.png) | ![Clerk sign-in modal](docs/assets/clerk-signin.png) |
+
+<!-- TODO(sonny): drop in two signed-in shots:
+     docs/assets/chat-groq.png    — a chat answer with the "Queried Sanity with GROQ" chip expanded
+     docs/assets/studio-context.png — Studio → AI Agent → Sanity Contexts → Trail Guide Storefront
+     then uncomment:
+![The agent's actual GROQ query, expanded in the chat](docs/assets/chat-groq.png)
+![The Sanity Context document in Studio — instructions + content filter](docs/assets/studio-context.png)
+-->
 
 ### Insights & analytics
 
