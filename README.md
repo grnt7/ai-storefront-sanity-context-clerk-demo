@@ -154,17 +154,13 @@ reads from the same live dataset as the website.
 - ✍️ **Editable behavior** — system prompt and context instructions are Sanity
   documents
 
+| The agent's GROQ, expanded in the chat | Clerk-scoped order lookup |
+| --- | --- |
+| ![Chat answer with the generated GROQ query expanded and a product card](docs/assets/chat-groq.png) | ![The agent answering "What did I just order?" from the signed-in user's own orders](docs/assets/chat-orders.png) |
+
 | Trail Guide (Clerk-gated) | Clerk sign-in modal |
 | --- | --- |
 | ![Trail Guide widget — sign in to chat](docs/assets/trail-guide-widget.png) | ![Clerk sign-in modal](docs/assets/clerk-signin.png) |
-
-<!-- TODO(sonny): drop in two signed-in shots:
-     docs/assets/chat-groq.png    — a chat answer with the "Queried Sanity with GROQ" chip expanded
-     docs/assets/studio-context.png — Studio → AI Agent → Sanity Contexts → Trail Guide Storefront
-     then uncomment:
-![The agent's actual GROQ query, expanded in the chat](docs/assets/chat-groq.png)
-![The Sanity Context document in Studio — instructions + content filter](docs/assets/studio-context.png)
--->
 
 ### Insights & analytics
 
@@ -301,6 +297,8 @@ You can also override per-request with URL params (`?instructions=…`,
 `?groqFilter=…`) for testing, and the base URL (no slug) works with no document
 at all.
 
+![The Sanity Context document in Studio — MCP URL, slug, and the content filter that bounds the agent](docs/assets/studio-context.png)
+
 ### Part 5 — Initial context (make the first message fast)
 
 Without help, an agent burns its first tool call asking "what content do you
@@ -356,6 +354,8 @@ Two pieces, both included:
 
 Raw transcripts are data; classification turns them into decisions ("shoppers
 keep asking for crampons — we don't stock crampons").
+
+![Agent Insights dashboard in Studio — scores, sentiment, and content gaps mined from real conversations](docs/assets/studio-insights.png)
 
 ### Part 9 — Tuning (the loop that makes it good)
 
