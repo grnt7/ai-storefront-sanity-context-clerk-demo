@@ -334,15 +334,36 @@ about the shopper can ride along with every message:
    that userId)
 4. A `get_my_orders` tool covers anything older or more detailed
 
+In practice the composed system prompt reads like a briefing (see
+`buildSystemPrompt` in [route.ts](src/app/api/chat/route.ts)):
+
+```text
+You are talking to Sonny.
+
+## In their cart right now
+- 1 x Two Pines Tent (2P) — $299
+Cart subtotal: $299 (free shipping at $150)
+
+## Their recent orders (newest first, with shipping status)
+- TH-WDBBXO — processing — placed Aug 13, 2026 — 1 x Ridgeline Mid Hiking Boot (Size 10)
+
+# Current page
+<page-context> /products/two-pines-tent … </page-context>
+```
+
 The result: *"what else do I need for a rainy weekend?"* gets an answer that
 knows the tent already in your cart, reminds you that you **already own**
 waterproof boots from a previous order, and tells you the rain shell tips you
 past free shipping — before a single tool call. And prompt-injection can't
 cross user boundaries: the model never chooses whose orders it sees.
 
-This is the "full control" advantage over off-the-shelf chat widgets: the
-context window is yours. Cart, order status, loyalty tier, current page —
-if your app knows it, your agent can know it.
+![The agent using cart, order history, and free-shipping math in one answer — no tool calls needed](docs/assets/chat-cart.png)
+
+This is the "full control" advantage of Sanity Context over off-the-shelf
+chat widgets: it hands the agent real-time access to your content and GROQ to
+find anything — but the agent is still **yours**. The context window is yours.
+Cart, order status, loyalty tier, current page — if your app knows it, your
+agent can know it, one template string away.
 
 ### Part 7 — Client-side tools (the agent touches the UI)
 
