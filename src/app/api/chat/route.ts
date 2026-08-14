@@ -80,6 +80,7 @@ interface RecentOrder {
   status?: string;
   total?: number;
   placedAt?: string;
+  customerName?: string;
   items?: { title?: string; quantity?: number; size?: string; color?: string }[];
 }
 
@@ -227,12 +228,13 @@ export async function POST(req: Request) {
           { slug: process.env.AGENT_CONFIG_SLUG || "trail-guide" },
         ),
         fetchInitialContext(),
-        currentUser(),
+        // A Clerk API hiccup must never take down the chat
+        currentUser().catch(() => null),
         // Recent orders go straight into the system prompt — the agent knows
         // purchase history and shipping status before any tool call
         serverClient.withConfig({ useCdn: false }).fetch<RecentOrder[]>(
           `*[_type == "order" && clerkUserId == $userId] | order(placedAt desc) [0...5] {
-            orderNumber, status, total, placedAt,
+            orderNumber, status, total, placedAt, customerName,
             items[]{ title, quantity, size, color }
           }`,
           { userId },
@@ -241,11 +243,21 @@ export async function POST(req: Request) {
 
     mcpClient = mcpClientResult;
 
+    // currentUser() can return null (rate limits, transient errors) even for
+    // a valid session — fall back to the name snapshotted on their orders
+    const shopperName =
+      user?.firstName ||
+      user?.fullName ||
+      user?.username ||
+      user?.primaryEmailAddress?.emailAddress ||
+      recentOrders?.find((o) => o.customerName)?.customerName ||
+      null;
+
     const systemPrompt = buildSystemPrompt({
       basePrompt: agentConfig?.systemPrompt || FALLBACK_SYSTEM_PROMPT,
       documentContext,
       initialContext,
-      userName: user?.firstName,
+      userName: shopperName,
       cart,
       recentOrders: recentOrders ?? [],
     });
