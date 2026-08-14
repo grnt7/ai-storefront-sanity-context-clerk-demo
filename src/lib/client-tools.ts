@@ -11,6 +11,21 @@ export interface DocumentContext {
 }
 
 /**
+ * Snapshot of the shopper's cart sent with every chat request,
+ * so the agent knows what's in the pack without a tool call.
+ */
+export interface CartChatContext {
+  items: {
+    title: string;
+    quantity: number;
+    price: number;
+    size?: string;
+    color?: string;
+  }[];
+  subtotal: number;
+}
+
+/**
  * Filters the agent can apply to the /products listing page.
  * Values must come from real documents (use groq_query first).
  */

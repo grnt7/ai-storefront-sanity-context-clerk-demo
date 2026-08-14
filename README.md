@@ -151,12 +151,18 @@ reads from the same live dataset as the website.
   navigates the catalog for the shopper
 - 👤 **Clerk-personalized** — a server-side `get_my_orders` tool is scoped to
   the signed-in user's ID; the agent physically cannot see anyone else's orders
+- 🎒 **Cart & history aware** — the shopper's live cart, recent orders, and
+  shipping status ride along in the system prompt, so the agent can say
+  "you already own waterproof boots" or "that puts you past free shipping"
+  without a single tool call
 - ✍️ **Editable behavior** — system prompt and context instructions are Sanity
   documents
 
 | The agent's GROQ, expanded in the chat | Clerk-scoped order lookup |
 | --- | --- |
 | ![Chat answer with the generated GROQ query expanded and a product card](docs/assets/chat-groq.png) | ![The agent answering "What did I just order?" from the signed-in user's own orders](docs/assets/chat-orders.png) |
+
+![Cart- and history-aware answer: the agent knows the tent in your cart, that you already own the boots, and the free-shipping threshold](docs/assets/chat-cart.png)
 
 | Trail Guide (Clerk-gated) | Clerk sign-in modal |
 | --- | --- |
@@ -313,18 +319,30 @@ the system prompt — then removes the now-redundant `initial_context` tool from
 the model's toolset. First answers get faster and the stable schema prefix
 makes prompt caching effective.
 
-### Part 6 — Personalization (where Clerk comes in)
+### Part 6 — Personalization (where Clerk comes in, and where you have full control)
 
 Sanity Context handles *catalog* knowledge. *Personal* knowledge needs
-identity:
+identity — and because **you** compose the system prompt, anything you know
+about the shopper can ride along with every message:
 
 1. Clerk's middleware protects `/api/chat` — the agent only works signed in
 2. The route reads `const { userId } = await auth()` — verified server-side,
    never supplied by the model
-3. A custom `get_my_orders` tool queries orders **by that userId**
+3. The route then injects, straight into the system prompt: the shopper's
+   **name**, their **live cart** (sent with each request from the browser),
+   and their **recent orders with shipping status** (fetched server-side by
+   that userId)
+4. A `get_my_orders` tool covers anything older or more detailed
 
-So "what did I order last time?" works, and prompt-injection can't cross user
-boundaries: the model never chooses whose orders to read.
+The result: *"what else do I need for a rainy weekend?"* gets an answer that
+knows the tent already in your cart, reminds you that you **already own**
+waterproof boots from a previous order, and tells you the rain shell tips you
+past free shipping — before a single tool call. And prompt-injection can't
+cross user boundaries: the model never chooses whose orders it sees.
+
+This is the "full control" advantage over off-the-shelf chat widgets: the
+context window is yours. Cart, order status, loyalty tier, current page —
+if your app knows it, your agent can know it.
 
 ### Part 7 — Client-side tools (the agent touches the UI)
 
@@ -586,6 +604,9 @@ The seed data is engineered so every beat lands:
    your real order.
 5. **Say**: _"Show me rain gear"_ — the agent drives the catalog filters
    itself.
+5b. **Add a tent to your pack**, then ask _"what else do I need for a rainy
+   weekend?"_ — the agent references the tent in your cart, skips
+   recommending boots you already own, and does the free-shipping math.
 6. **Live-tune in Studio**: edit the Ridgeline description from "plush" to
    "stiff, long break-in", publish, re-ask question 3 — the ranking changes.
    Then edit the agent's Instructions or system prompt and watch its behavior

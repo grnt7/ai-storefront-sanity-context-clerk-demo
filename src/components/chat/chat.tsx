@@ -10,10 +10,12 @@ import { Compass, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useCart } from "@/components/cart/cart-context";
 import { getDocumentContext, getPageContent } from "@/lib/capture-context";
 import {
   CLIENT_TOOL_NAMES,
   productFiltersSchema,
+  type CartChatContext,
   type ProductFiltersInput,
 } from "@/lib/client-tools";
 
@@ -53,6 +55,23 @@ export function Chat({ onClose, initialPrompt, onInitialPromptSent }: ChatProps)
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Live cart snapshot, read via ref so the (once-created) transport
+  // always sends the current cart with each request
+  const { items: cartItems, subtotal: cartSubtotal } = useCart();
+  const cartRef = useRef<CartChatContext>({ items: [], subtotal: 0 });
+  useEffect(() => {
+    cartRef.current = {
+      items: cartItems.map((i) => ({
+        title: i.title,
+        quantity: i.quantity,
+        price: i.price,
+        size: i.size,
+        color: i.color,
+      })),
+      subtotal: cartSubtotal,
+    };
+  }, [cartItems, cartSubtotal]);
+
   const applyProductFilters = useCallback(
     (filters: ProductFiltersInput): string => {
       const params = new URLSearchParams();
@@ -75,7 +94,10 @@ export function Chat({ onClose, initialPrompt, onInitialPromptSent }: ChatProps)
   const { messages, sendMessage, status, addToolOutput, error, regenerate } =
     useChat({
       transport: new DefaultChatTransport({
-        body: () => ({ documentContext: getDocumentContext() }),
+        body: () => ({
+          documentContext: getDocumentContext(),
+          cart: cartRef.current,
+        }),
       }),
       sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithToolCalls,
       onToolCall: async ({ toolCall }) => {

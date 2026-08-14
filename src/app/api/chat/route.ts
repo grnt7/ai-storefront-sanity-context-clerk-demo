@@ -11,7 +11,11 @@ import {
 } from "ai";
 import { z } from "zod";
 
-import { clientTools, type DocumentContext } from "@/lib/client-tools";
+import {
+  clientTools,
+  type CartChatContext,
+  type DocumentContext,
+} from "@/lib/client-tools";
 import { serverClient } from "@/sanity/lib/server-client";
 import { writeClient } from "@/sanity/lib/write-client";
 
@@ -71,28 +75,81 @@ You are the Trail Guide, the shopping assistant for Trailhead, an outdoor gear s
 - If nothing matches, say so and suggest the closest alternative
 `.trim();
 
+interface RecentOrder {
+  orderNumber: string;
+  status?: string;
+  total?: number;
+  placedAt?: string;
+  items?: { title?: string; quantity?: number; size?: string; color?: string }[];
+}
+
+function formatCart(cart?: CartChatContext): string {
+  if (!cart?.items?.length) {
+    return "Their cart is currently empty.";
+  }
+  const lines = cart.items
+    .map(
+      (i) =>
+        `- ${i.quantity} x ${i.title}${i.size ? ` (Size ${i.size})` : ""}${i.color ? ` — ${i.color}` : ""} — $${i.price * i.quantity}`,
+    )
+    .join("\n");
+  return `## In their cart right now\n\n${lines}\nCart subtotal: $${cart.subtotal} (free shipping at $150)\n\nUse this to advise: suggest complementary gear, flag anything already in the cart, and mention the free-shipping threshold when relevant.`;
+}
+
+function formatOrders(orders: RecentOrder[]): string {
+  if (!orders.length) {
+    return "They have not placed any orders yet.";
+  }
+  const lines = orders
+    .map((o) => {
+      const date = o.placedAt
+        ? new Date(o.placedAt).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })
+        : "unknown date";
+      const items = (o.items ?? [])
+        .map(
+          (i) =>
+            `${i.quantity ?? 1} x ${i.title ?? "item"}${i.size ? ` (Size ${i.size})` : ""}`,
+        )
+        .join(", ");
+      return `- ${o.orderNumber} — ${o.status ?? "processing"} — placed ${date} — ${items}${typeof o.total === "number" ? ` — total $${o.total}` : ""}`;
+    })
+    .join("\n");
+  return `## Their recent orders (newest first, with shipping status)\n\n${lines}\n\nAnswer order and delivery questions directly from this. Use the get_my_orders tool only if they ask about older orders or need more detail.`;
+}
+
 interface BuildSystemPromptParams {
   basePrompt: string;
   documentContext?: DocumentContext;
   initialContext?: string | null;
   userName?: string | null;
-  signedIn: boolean;
+  cart?: CartChatContext;
+  recentOrders: RecentOrder[];
 }
 
 function buildSystemPrompt(props: BuildSystemPromptParams): string {
-  const { basePrompt, documentContext, initialContext, userName, signedIn } =
-    props;
+  const {
+    basePrompt,
+    documentContext,
+    initialContext,
+    userName,
+    cart,
+    recentOrders,
+  } = props;
 
   return `
 ${basePrompt}
 ${initialContext ? `\n# Data reference\n\nUse this to understand what's available and write better queries.\n\n${initialContext}\n` : ""}
 # The shopper
 
-${
-  signedIn
-    ? `The shopper is signed in${userName ? ` as ${userName}` : ""}. Use the get_my_orders tool whenever they ask about their orders, past purchases, sizes they bought before, or deliveries.`
-    : "The shopper is not signed in, so you cannot look up their orders."
-}
+You are talking to ${userName || "a signed-in shopper"}.
+
+${formatCart(cart)}
+
+${formatOrders(recentOrders)}
 
 # Current page
 
@@ -119,11 +176,12 @@ Always use directives for product names so the UI can render them as cards.
 interface ChatRequest {
   messages: UIMessage[];
   documentContext?: DocumentContext;
+  cart?: CartChatContext;
   id: string;
 }
 
 export async function POST(req: Request) {
-  const { messages, documentContext, id: chatId }: ChatRequest =
+  const { messages, documentContext, cart, id: chatId }: ChatRequest =
     await req.json();
 
   if (!process.env.SANITY_CONTEXT_MCP_URL) {
@@ -153,7 +211,7 @@ export async function POST(req: Request) {
   let mcpClient: MCPClient | null = null;
 
   try {
-    const [mcpClientResult, agentConfig, initialContext, user] =
+    const [mcpClientResult, agentConfig, initialContext, user, recentOrders] =
       await Promise.all([
         createMCPClient({
           transport: {
@@ -170,6 +228,15 @@ export async function POST(req: Request) {
         ),
         fetchInitialContext(),
         currentUser(),
+        // Recent orders go straight into the system prompt — the agent knows
+        // purchase history and shipping status before any tool call
+        serverClient.withConfig({ useCdn: false }).fetch<RecentOrder[]>(
+          `*[_type == "order" && clerkUserId == $userId] | order(placedAt desc) [0...5] {
+            orderNumber, status, total, placedAt,
+            items[]{ title, quantity, size, color }
+          }`,
+          { userId },
+        ),
       ]);
 
     mcpClient = mcpClientResult;
@@ -179,7 +246,8 @@ export async function POST(req: Request) {
       documentContext,
       initialContext,
       userName: user?.firstName,
-      signedIn: true,
+      cart,
+      recentOrders: recentOrders ?? [],
     });
 
     const allMcpTools = await mcpClient.tools();
