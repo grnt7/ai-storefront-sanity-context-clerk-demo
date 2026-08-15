@@ -21,29 +21,31 @@ const barlowCondensed = Barlow_Condensed({
 
 export const metadata: Metadata = {
   title: {
-    default: "Trailhead — Outdoor Gear Supply",
-    template: "%s | Trailhead",
+    default: "Frame & Roll — Bikepacking & Adventure Bags",
+    template: "%s | Frame & Roll",
   },
   description:
-    "Boots, packs, shelters, and layers for the long way round. Ask the Trail Guide anything about our gear.",
+    "Frame bags, handlebar rolls, seat packs, and panniers for gravel and adventure riding. Ask the Pack Guide anything about our bags.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <ClerkProvider
-      appearance={{
-        variables: {
-          colorPrimary: "#e4570f",
-          colorForeground: "#1c2a21",
-        },
-      }}
+    <html
+      lang="en"
+      className={`${geistSans.variable} ${geistMono.variable} ${barlowCondensed.variable} h-full antialiased`}
     >
-      <html
-        lang="en"
-        className={`${geistSans.variable} ${geistMono.variable} ${barlowCondensed.variable} h-full antialiased`}
-      >
-        <body className="min-h-full flex flex-col">{children}</body>
-      </html>
-    </ClerkProvider>
+      <body className="min-h-full flex flex-col">
+        <ClerkProvider
+          appearance={{
+            variables: {
+              colorPrimary: "#e4570f",
+              colorForeground: "#1c2a21",
+            },
+          }}
+        >
+          {children}
+        </ClerkProvider>
+      </body>
+    </html>
   );
 }

@@ -1,6 +1,6 @@
 /**
  * Smoke-tests the agent pipeline without the browser:
- * Anthropic model + Sanity Context MCP tools + the demo question.
+ * OpenAI model + Sanity Context MCP tools + the demo question.
  *
  * Usage: npx tsx scripts/smoke-chat.ts
  */
@@ -9,9 +9,11 @@ import { config } from "dotenv";
 config({ path: ".env.local" });
 
 async function main() {
-  const { anthropic } = await import("@ai-sdk/anthropic");
+  const { createOpenAI } = await import("@ai-sdk/openai");
   const { createMCPClient } = await import("@ai-sdk/mcp");
   const { generateText, stepCountIs } = await import("ai");
+
+  const openai = createOpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
   const mcpClient = await createMCPClient({
     transport: {
@@ -27,10 +29,10 @@ async function main() {
   console.log("MCP tools:", Object.keys(tools).join(", "));
 
   const result = await generateText({
-    model: anthropic(process.env.ANTHROPIC_MODEL || "claude-sonnet-5"),
+    model: openai(process.env.OPENAI_MODEL || "gpt-4o"),
     system:
-      "You are the Trail Guide for the Trailhead outdoor store. Use groq_query to look up real products. Combine hard filters (price, size, inStock) with semantic ranking in a single GROQ query. Answer briefly with product names and prices.",
-    prompt: "Comfy hiking boots under $200, size 10?",
+      "You are the Pack Guide for Frame & Roll, a bikepacking and adventure bags store. Use groq_query to look up real products. Combine hard filters (price, size, inStock) with semantic ranking in a single GROQ query. Answer briefly with product names and prices.",
+    prompt: "Waterproof seat pack under $120?",
     tools,
     stopWhen: stepCountIs(8),
   });

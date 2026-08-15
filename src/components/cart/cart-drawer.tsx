@@ -56,7 +56,7 @@ export function CartDrawer() {
           <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
             <ShoppingBag className="h-8 w-8 text-moss" />
             <p className="text-sm text-pine-ink/70">
-              Your pack is empty. Add some gear — or ask the Trail Guide what to
+              Your pack is empty. Add some bags — or ask the Pack Guide what to
               bring.
             </p>
             <Link

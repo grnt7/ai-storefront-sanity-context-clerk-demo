@@ -21,7 +21,7 @@ export default defineBlueprint({
       timeout: 600,
       robotToken: "$.resources.classify-conversations-robot.token",
       env: {
-        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? "",
+        OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "",
         SANITY_PROJECT_ID: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID ?? "",
         SANITY_DATASET: process.env.NEXT_PUBLIC_SANITY_DATASET ?? "production",
       },

@@ -49,7 +49,7 @@ export default async function ProductPage({
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
       <nav className="mb-6 font-mono text-xs text-moss">
         <Link href="/products" className="hover:underline">
-          All gear
+          All bags
         </Link>
         {product.category && (
           <>
@@ -78,7 +78,7 @@ export default async function ProductPage({
             />
           ) : (
             <div className="flex h-full items-center justify-center text-moss">
-              <span className="display text-3xl">Trailhead</span>
+              <span className="display text-3xl">Frame & Roll</span>
             </div>
           )}
           {onSale && (
@@ -94,7 +94,7 @@ export default async function ProductPage({
             <p className="eyebrow">
               {[product.brand?.title, product.category?.title]
                 .filter(Boolean)
-                .join(" · ") || "Trailhead"}
+                .join(" · ") || "Frame & Roll"}
             </p>
             {product.sku && (
               <p className="font-mono text-xs text-pine-ink/40">

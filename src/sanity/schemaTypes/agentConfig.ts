@@ -9,7 +9,7 @@ export const agentConfig = defineType({
       name: "name",
       title: "Name",
       type: "string",
-      description: 'Name for this agent (e.g., "Trail Guide")',
+      description: 'Name for this agent (e.g., "Pack Guide")',
     }),
     defineField({
       name: "slug",

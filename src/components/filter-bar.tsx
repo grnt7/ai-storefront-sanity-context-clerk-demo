@@ -6,7 +6,22 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { Category } from "@/lib/types";
 
-const SIZES = ["7", "8", "9", "10", "10.5", "11", "12", "One Size"];
+const SIZES = [
+  "1L",
+  "2L",
+  "3L",
+  "5L",
+  "8L",
+  "10L",
+  "15L",
+  "16L",
+  "18L",
+  "20L",
+  "22L",
+  "24L",
+  "26L",
+  "One Size",
+];
 
 const SORTS = [
   { value: "", label: "A–Z" },
@@ -79,7 +94,7 @@ export function FilterBar({ categories }: { categories: Category[] }) {
 
       <div className="ml-auto flex flex-wrap items-center gap-2">
         <label className="flex items-center gap-1.5 text-xs text-pine-ink/60">
-          Size
+          Capacity
           <select
             value={activeSize ?? ""}
             onChange={(e) => setParam("size", e.target.value || null)}

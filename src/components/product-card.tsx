@@ -27,7 +27,7 @@ export function ProductCard({ product }: { product: Product }) {
           />
         ) : (
           <div className="flex h-full items-center justify-center text-moss">
-            <span className="display text-xl">Trailhead</span>
+            <span className="display text-xl">Frame & Roll</span>
           </div>
         )}
 

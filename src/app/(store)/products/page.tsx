@@ -6,7 +6,7 @@ import { ProductGrid } from "@/components/product-grid";
 import { getCategories, getProducts } from "@/sanity/lib/queries";
 
 export const metadata: Metadata = {
-  title: "Shop all gear",
+  title: "Shop all bags",
 };
 
 function firstValue(value: string | string[] | undefined): string | undefined {
@@ -43,9 +43,9 @@ export default async function ProductsPage({
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-      <p className="eyebrow">Trailhead catalog</p>
+      <p className="eyebrow">Frame & Roll catalog</p>
       <h1 className="display mt-1 text-5xl font-semibold text-pine-ink">
-        {activeCategory ? activeCategory.title : "All gear"}
+        {activeCategory ? activeCategory.title : "All bags"}
       </h1>
       <p className="mt-2 font-mono text-xs text-moss">
         {products.length} item{products.length === 1 ? "" : "s"}

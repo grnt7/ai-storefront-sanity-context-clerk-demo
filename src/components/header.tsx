@@ -1,6 +1,6 @@
 "use client";
 
-import { Show, SignInButton, UserButton } from "@clerk/nextjs";
+import { Show, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
 import { Package, ShoppingBag } from "lucide-react";
 import Link from "next/link";
 
@@ -25,7 +25,7 @@ export function Header() {
         <Link href="/" className="flex items-center gap-2.5">
           <BlazeMark />
           <span className="display text-2xl font-bold tracking-wide text-pine-ink">
-            Trailhead
+            Frame & Roll
           </span>
         </Link>
 
@@ -34,16 +34,22 @@ export function Header() {
             Shop all
           </Link>
           <Link
-            href="/products?category=hiking-boots"
+            href="/products?category=frame-bags"
             className="transition-colors hover:text-pine-ink"
           >
-            Boots
+            Frame bags
           </Link>
           <Link
-            href="/products?category=backpacks"
+            href="/products?category=seat-packs"
             className="transition-colors hover:text-pine-ink"
           >
-            Packs
+            Seat packs
+          </Link>
+          <Link
+            href="/products?category=urban-backpacks"
+            className="transition-colors hover:text-pine-ink"
+          >
+            Urban
           </Link>
         </nav>
 
@@ -76,11 +82,19 @@ export function Header() {
             <SignInButton mode="modal">
               <button
                 type="button"
-                className="rounded-md bg-pine px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-pine-ink"
+                className="rounded-md px-3 py-2 text-sm font-semibold text-pine-ink transition-colors hover:bg-pine/10"
               >
                 Sign in
               </button>
             </SignInButton>
+            <SignUpButton mode="modal">
+              <button
+                type="button"
+                className="rounded-md bg-pine px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-pine-ink"
+              >
+                Sign up
+              </button>
+            </SignUpButton>
           </Show>
 
           <Show when="signed-in">

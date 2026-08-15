@@ -14,8 +14,8 @@
     "functions:test": "sanity functions test classify-conversations --with-user-token"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.110",
     "@ai-sdk/mcp": "^1.0.70",
+    "@ai-sdk/openai": "^3.0.96",
     "@ai-sdk/react": "^3.0.252",
     "@clerk/nextjs": "^7.7.4",
     "@sanity/agent-directives": "^0.2.2",

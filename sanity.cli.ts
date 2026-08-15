@@ -5,8 +5,8 @@ export default defineCliConfig({
     projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
     dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
   },
-  studioHost: "trailhead-p6kwp4us",
+  studioHost: "frame-and-roll",
   deployment: {
-    appId: "eh6941up1v74oczbzhpke3hi",
+    appId: "vkjndj1pwnv71mk7wg6zqtx8",
   },
 });

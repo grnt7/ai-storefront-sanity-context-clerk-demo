@@ -12,4 +12,4 @@ export const projectId =
 
 export const isSanityConfigured = projectId !== "placeholder";
 
-export const studioTitle = "Trailhead";
+export const studioTitle = "Frame & Roll";

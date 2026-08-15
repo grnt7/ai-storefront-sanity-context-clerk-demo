@@ -26,7 +26,7 @@ export function Message(props: MessageProps) {
 
   return (
     <div className="space-y-1.5">
-      {/* Tool activity: shows the GROQ the agent wrote, filter changes, etc. */}
+      {/* Shopper-visible tool actions (filter changes, order lookup) */}
       {!isUser && toolParts.length > 0 && (
         <div className="flex flex-col items-start gap-1">
           {toolParts.map((part, i) => (

@@ -29,7 +29,7 @@ export function AskGuideButton({
       )}
     >
       <Compass className="h-4 w-4" />
-      {children ?? "Ask the Trail Guide"}
+      {children ?? "Ask the Pack Guide"}
     </button>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { Show, SignInButton } from "@clerk/nextjs";
 import { useChat } from "@ai-sdk/react";
 import {
   DefaultChatTransport,
@@ -24,8 +25,8 @@ import { Loader } from "./loader";
 import { Message } from "./message/message";
 
 const SUGGESTIONS = [
-  "Comfy hiking boots under $200, size 10?",
-  "What should I pack for a rainy weekend hike?",
+  "Waterproof seat pack under $120?",
+  "What bags do I need for a 2-day gravel overnight?",
   "What did I order last time?",
 ];
 
@@ -162,10 +163,17 @@ export function Chat({ onClose, initialPrompt, onInitialPromptSent }: ChatProps)
             <Compass className="h-4 w-4 text-blaze" />
           </div>
           <div>
-            <h3 className="text-sm font-medium text-white">Trail Guide</h3>
-            <p className="text-xs text-white/50">
-              Live from Sanity · knows your orders
-            </p>
+            <h3 className="text-sm font-medium text-white">Pack Guide</h3>
+            <Show when="signed-in">
+              <p className="text-xs text-white/50">
+                Live from Sanity · knows your orders
+              </p>
+            </Show>
+            <Show when="signed-out">
+              <p className="text-xs text-white/50">
+                Live from Sanity · sign in for order history
+              </p>
+            </Show>
           </div>
         </div>
         <button
@@ -183,8 +191,22 @@ export function Chat({ onClose, initialPrompt, onInitialPromptSent }: ChatProps)
         {messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
             <p className="text-sm text-pine-ink/50">
-              Ask about any gear in the store — or your own orders.
+              Ask about any bag in the store — capacity, waterproofing, or what
+              to pack for your ride.
             </p>
+            <Show when="signed-out">
+              <p className="text-xs text-pine-ink/40">
+                Questions about your orders?{" "}
+                <SignInButton mode="modal">
+                  <button
+                    type="button"
+                    className="font-medium text-moss underline-offset-2 hover:underline"
+                  >
+                    Sign in
+                  </button>
+                </SignInButton>
+              </p>
+            </Show>
             <div className="flex flex-col gap-2">
               {SUGGESTIONS.map((suggestion) => (
                 <button

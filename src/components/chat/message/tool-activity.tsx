@@ -6,26 +6,19 @@ import { useState } from "react";
 
 type AnyPart = UIMessagePart<UIDataTypes, UITools>;
 
+/** MCP / backend tools — useful for demos, too technical for shoppers */
+const HIDDEN_TOOLS = new Set([
+  "groq_query",
+  "schema_explorer",
+  "array_field_reader",
+  "initial_context",
+]);
+
 function labelFor(toolName: string): {
   label: string;
   icon: React.ReactNode;
 } {
   switch (toolName) {
-    case "groq_query":
-      return {
-        label: "Queried Sanity with GROQ",
-        icon: <Database className="h-3 w-3" />,
-      };
-    case "schema_explorer":
-      return {
-        label: "Explored the schema",
-        icon: <Database className="h-3 w-3" />,
-      };
-    case "array_field_reader":
-      return {
-        label: "Read content fields",
-        icon: <Database className="h-3 w-3" />,
-      };
     case "get_my_orders":
       return {
         label: "Checked your orders",
@@ -47,9 +40,9 @@ function labelFor(toolName: string): {
 }
 
 /**
- * Compact, expandable record of a tool call. For groq_query the expanded
- * view shows the exact GROQ the agent generated — schema-aware filters
- * plus semantic ranking in a single query.
+ * Compact, expandable record of a shopper-visible tool call (e.g. filter
+ * changes). Internal MCP queries (GROQ, schema) stay hidden — the loader
+ * covers the wait.
  */
 export function ToolActivity({ part }: { part: AnyPart }) {
   const [open, setOpen] = useState(false);
@@ -61,7 +54,7 @@ export function ToolActivity({ part }: { part: AnyPart }) {
         ? part.type.slice(5)
         : null;
 
-  if (!toolName) return null;
+  if (!toolName || HIDDEN_TOOLS.has(toolName)) return null;
 
   const state = "state" in part ? part.state : undefined;
   const input =
@@ -75,15 +68,6 @@ export function ToolActivity({ part }: { part: AnyPart }) {
   const { label, icon } = labelFor(toolName);
   const running = state === "input-streaming" || state === "input-available";
 
-  const groq =
-    toolName === "groq_query" &&
-    input &&
-    typeof input === "object" &&
-    "query" in input &&
-    typeof (input as { query: unknown }).query === "string"
-      ? (input as { query: string }).query
-      : null;
-
   // Prefer the input; for zero-argument tools (e.g. get_my_orders) fall back
   // to the result so the expanded chip is never an empty "{}"
   const toDetail = (value: unknown): string | null => {
@@ -94,7 +78,7 @@ export function ToolActivity({ part }: { part: AnyPart }) {
     return JSON.stringify(value, null, 2);
   };
 
-  const detail = (groq ?? toDetail(input) ?? toDetail(output))?.slice(0, 4000);
+  const detail = (toDetail(input) ?? toDetail(output))?.slice(0, 4000);
 
   return (
     <div className="max-w-full">

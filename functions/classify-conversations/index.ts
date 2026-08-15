@@ -1,7 +1,11 @@
-import { anthropic } from "@ai-sdk/anthropic";
+import { createOpenAI } from "@ai-sdk/openai";
 import { createClient } from "@sanity/client";
 import { classifyConversations } from "@sanity/context/insights";
 import { scheduledEventHandler } from "@sanity/functions";
+
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 export const handler = scheduledEventHandler(async ({ context }) => {
   if (!context.clientOptions?.token) {
@@ -20,7 +24,7 @@ export const handler = scheduledEventHandler(async ({ context }) => {
 
   const result = await classifyConversations({
     client,
-    model: anthropic("claude-haiku-4-5"),
+    model: openai("gpt-4o-mini"),
     telemetry: {
       shareMetrics: true,
     },

@@ -650,7 +650,7 @@ Every one of these was hit for real while building this:
 | Blueprint deploy fails: *"Native modules detected: @rolldown/binding… lightningcss…"* | The function bundler is packaging your Next.js app's dependency tree. Give the function its own `package.json` (already done here) **and** deploy with `--fn-installer pnpm` — npm auto-installs `@sanity/context`'s `sanity` peer dependency, which drags in the Studio's native binaries; pnpm doesn't. |
 | Blueprint deploy fails: *"would run minutely but your plan limits you to hourly"* | Sub-hourly cron schedules need a higher Sanity plan. This repo uses `0 * * * *` (hourly). |
 | `blueprints init/promote` hangs in scripts | They're interactive. Use the flag forms shown in step 11. |
-| Chat returns 401 | By design — `/api/chat` is Clerk-protected. Sign in first. |
+| Chat returns 401 | Check env vars (`ANTHROPIC_API_KEY`, `SANITY_CONTEXT_MCP_URL`, `SANITY_API_READ_TOKEN`). Chat is open to guests; only checkout and `/orders` require sign-in. |
 | Agent says something is "out of stock" when we just don't sell it | Prompt wording, not data. The system prompt (a Sanity document!) now instructs: "out of stock" only when `inStock == false`; otherwise "we don't carry it". Edit it in **AI Agent → Agent Configs**. |
 | Port 3000 already in use | `npm run dev` will pick another port — then add that origin with `npx sanity cors add`. |
 

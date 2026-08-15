@@ -1,4 +1,4 @@
-import { anthropic } from "@ai-sdk/anthropic";
+import { createOpenAI } from "@ai-sdk/openai";
 import { createMCPClient, type MCPClient } from "@ai-sdk/mcp";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { sanityInsightsIntegration } from "@sanity/context/ai-sdk";
@@ -19,8 +19,12 @@ import {
 import { serverClient } from "@/sanity/lib/server-client";
 import { writeClient } from "@/sanity/lib/write-client";
 
-const DEFAULT_MODEL = "claude-sonnet-5";
+const DEFAULT_MODEL = "gpt-4o";
 const MAX_STEPS = 20;
+
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 let cachedInitialContext: string | null = null;
 let cacheTimestamp = 0;
@@ -59,20 +63,21 @@ async function fetchInitialContext(): Promise<string | null> {
 }
 
 const FALLBACK_SYSTEM_PROMPT = `
-You are the Trail Guide, the shopping assistant for Trailhead, an outdoor gear store.
+You are the Pack Guide, the shopping assistant for Frame & Roll, a bikepacking, adventure bags, and urban commuter carry store.
 
 ## Your capabilities
-- Search products by name, category, price, size, features, or vibe
-- Compare products and make honest recommendations
-- Answer questions about availability, sizing, and specs
-- Look up the signed-in shopper's own orders when asked
+- Search bags by mount type, capacity, price, features, or riding style
+- Compare products and make honest recommendations for gravel, MTB, touring, and city commuter setups
+- Answer questions about availability, capacity, and waterproofing
+- Look up the signed-in shopper's own orders when they are signed in
 
 ## How to respond
 - Always use available tools to look up real content — never guess or make up products
-- Combine hard filters (price, size, inStock) with semantic ranking in a single GROQ query when the shopper mixes constraints with vibes (e.g. "comfy boots under $200, size 10")
-- Be warm, brief, and practical — like a good outfitter, not a salesperson
+- Combine hard filters (price, capacity in sizes, inStock) with semantic ranking in a single GROQ query when the shopper mixes constraints with vibes
+- Be warm, brief, and practical — like a seasoned bikepacker, not a salesperson
 - Say "out of stock" ONLY when a product exists and its inStock field is false. If we do not carry an item at all, say we don't carry it — never call it out of stock
 - If nothing matches, say so and suggest the closest alternative
+- If the shopper asks about their orders but is not signed in, tell them to sign in using the button in the site header — never invent order details
 `.trim();
 
 interface RecentOrder {
@@ -97,7 +102,12 @@ function formatCart(cart?: CartChatContext): string {
   return `## In their cart right now\n\n${lines}\nCart subtotal: $${cart.subtotal} (free shipping at $150)\n\nUse this to advise: suggest complementary gear, flag anything already in the cart, and mention the free-shipping threshold when relevant.`;
 }
 
-function formatOrders(orders: RecentOrder[]): string {
+function formatOrders(orders: RecentOrder[], isSignedIn: boolean): string {
+  if (!isSignedIn) {
+    return `## Order history
+
+The shopper is browsing as a guest — you do not have access to their orders. If they ask about past purchases or delivery status, explain they can sign in with the button in the site header. Do not guess or invent order details.`;
+  }
   if (!orders.length) {
     return "They have not placed any orders yet.";
   }
@@ -127,6 +137,7 @@ interface BuildSystemPromptParams {
   documentContext?: DocumentContext;
   initialContext?: string | null;
   userName?: string | null;
+  isSignedIn: boolean;
   cart?: CartChatContext;
   recentOrders: RecentOrder[];
 }
@@ -137,20 +148,25 @@ function buildSystemPrompt(props: BuildSystemPromptParams): string {
     documentContext,
     initialContext,
     userName,
+    isSignedIn,
     cart,
     recentOrders,
   } = props;
+
+  const shopperLabel = isSignedIn
+    ? userName || "a signed-in shopper"
+    : "a guest shopper (not signed in)";
 
   return `
 ${basePrompt}
 ${initialContext ? `\n# Data reference\n\nUse this to understand what's available and write better queries.\n\n${initialContext}\n` : ""}
 # The shopper
 
-You are talking to ${userName || "a signed-in shopper"}.
+You are talking to ${shopperLabel}.
 
 ${formatCart(cart)}
 
-${formatOrders(recentOrders)}
+${formatOrders(recentOrders, isSignedIn)}
 
 # Current page
 
@@ -191,9 +207,9 @@ export async function POST(req: Request) {
       { status: 500 },
     );
   }
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!process.env.OPENAI_API_KEY) {
     return Response.json(
-      { error: "ANTHROPIC_API_KEY is not set" },
+      { error: "OPENAI_API_KEY is not set" },
       { status: 500 },
     );
   }
@@ -205,13 +221,20 @@ export async function POST(req: Request) {
   }
 
   const { userId } = await auth();
-  if (!userId) {
-    return Response.json({ error: "Sign in to chat" }, { status: 401 });
-  }
 
   let mcpClient: MCPClient | null = null;
 
   try {
+    const ordersPromise = userId
+      ? serverClient.withConfig({ useCdn: false }).fetch<RecentOrder[]>(
+          `*[_type == "order" && clerkUserId == $userId] | order(placedAt desc) [0...5] {
+            orderNumber, status, total, placedAt, customerName,
+            items[]{ title, quantity, size, color }
+          }`,
+          { userId },
+        )
+      : Promise.resolve([] as RecentOrder[]);
+
     const [mcpClientResult, agentConfig, initialContext, user, recentOrders] =
       await Promise.all([
         createMCPClient({
@@ -225,20 +248,11 @@ export async function POST(req: Request) {
         }),
         serverClient.fetch<{ systemPrompt: string | null } | null>(
           `*[_type == "agent.config" && slug.current == $slug][0] { systemPrompt }`,
-          { slug: process.env.AGENT_CONFIG_SLUG || "trail-guide" },
+          { slug: process.env.AGENT_CONFIG_SLUG || "pack-guide" },
         ),
         fetchInitialContext(),
-        // A Clerk API hiccup must never take down the chat
-        currentUser().catch(() => null),
-        // Recent orders go straight into the system prompt — the agent knows
-        // purchase history and shipping status before any tool call
-        serverClient.withConfig({ useCdn: false }).fetch<RecentOrder[]>(
-          `*[_type == "order" && clerkUserId == $userId] | order(placedAt desc) [0...5] {
-            orderNumber, status, total, placedAt, customerName,
-            items[]{ title, quantity, size, color }
-          }`,
-          { userId },
-        ),
+        userId ? currentUser().catch(() => null) : Promise.resolve(null),
+        ordersPromise,
       ]);
 
     mcpClient = mcpClientResult;
@@ -258,6 +272,7 @@ export async function POST(req: Request) {
       documentContext,
       initialContext,
       userName: shopperName,
+      isSignedIn: !!userId,
       cart,
       recentOrders: recentOrders ?? [],
     });
@@ -269,14 +284,15 @@ export async function POST(req: Request) {
       Object.entries(allMcpTools).filter(([name]) => name !== "initial_context"),
     );
 
-    // Server-side tool: the signed-in shopper's own orders (Clerk userId scoped)
-    const getMyOrders = tool({
-      description:
-        "Get the signed-in shopper's own orders: order numbers, status, totals, dates, and purchased items (with product _id, title, price, quantity, size, color). Use for any question about their purchases.",
-      inputSchema: z.object({}),
-      execute: async () => {
-        const orders = await serverClient.withConfig({ useCdn: false }).fetch(
-          `*[_type == "order" && clerkUserId == $userId] | order(placedAt desc) [0...10] {
+    // Order lookup is only available for signed-in shoppers
+    const getMyOrders = userId
+      ? tool({
+          description:
+            "Get the signed-in shopper's own orders: order numbers, status, totals, dates, and purchased items (with product _id, title, price, quantity, size, color). Use for any question about their purchases.",
+          inputSchema: z.object({}),
+          execute: async () => {
+            const orders = await serverClient.withConfig({ useCdn: false }).fetch(
+              `*[_type == "order" && clerkUserId == $userId] | order(placedAt desc) [0...10] {
             orderNumber,
             status,
             total,
@@ -291,24 +307,25 @@ export async function POST(req: Request) {
               "productType": product->_type
             }
           }`,
-          { userId },
-        );
-        return { orders };
-      },
-    });
+              { userId },
+            );
+            return { orders };
+          },
+        })
+      : null;
 
-    const modelId = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
+    const modelId = process.env.OPENAI_MODEL || DEFAULT_MODEL;
 
     const hasWriteToken = !!process.env.SANITY_API_WRITE_TOKEN;
 
     const result = streamText({
-      model: anthropic(modelId),
+      model: openai(modelId),
       system: systemPrompt,
       messages: await convertToModelMessages(messages),
       tools: {
         ...mcpTools,
         ...clientTools,
-        get_my_orders: getMyOrders,
+        ...(getMyOrders ? { get_my_orders: getMyOrders } : {}),
       },
       stopWhen: stepCountIs(MAX_STEPS),
       // Conversation Insights: saves transcripts to Sanity for the
@@ -320,7 +337,7 @@ export async function POST(req: Request) {
               integrations: [
                 sanityInsightsIntegration({
                   client: writeClient,
-                  agentId: "trail-guide",
+                  agentId: "pack-guide",
                   threadId: chatId,
                 }),
               ],

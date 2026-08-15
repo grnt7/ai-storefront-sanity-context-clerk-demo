@@ -39,10 +39,10 @@ export default async function OrdersPage({
           <CheckCircle2 className="h-5 w-5 shrink-0 text-pine" />
           <div>
             <p className="text-sm font-semibold text-pine-ink">
-              Order {placed} placed — see you on the trail.
+              Order {placed} placed — see you on the route.
             </p>
             <p className="text-xs text-pine-ink/60">
-              This was a simulated payment. Try asking the Trail Guide:
+              This was a simulated payment. Try asking the Pack Guide:
               &ldquo;What did I just order?&rdquo;
             </p>
           </div>
